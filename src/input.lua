@@ -1,19 +1,23 @@
-local keyStates = {}
+keyStates = {}
 
 actions = {
     jump="space",
     move_left="a",
-    move_right="d"
+    move_right="d",
+    crouch="s"
 }
 
 function getDirection()
     -- Y dir not implemented
-    local dir = {x = 0}
+    local dir = {x = 0, y = 0}
     if love.keyboard.isDown(actions.move_left) then
         dir.x = -1
     end
     if love.keyboard.isDown(actions.move_right) then
         dir.x = 1
+    end
+    if love.keyboard.isDown(actions.crouch) then
+        dir.y = -1
     end
     return dir
 end

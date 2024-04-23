@@ -4,6 +4,7 @@ require("input")
 Player = {}
 
 function Player:load()
+    self.canMove = true
     self.x = 100
     self.y = 0
     self.width = 20
@@ -34,7 +35,7 @@ function Player:load()
     self.physics.fixture = love.physics.newFixture(self.physics.body, self.physics.shape)
 end
 
-function Player:update(dt)
+function Player:update(dt, ignorePlayerInput)
     local dir = getDirection()
     self:move(dt, dir)
     self:manageJumpBufferTime(dt)
@@ -42,6 +43,10 @@ function Player:update(dt)
     self:jump()
     self:applyGravity(dt)
     self:syncPhysics()
+
+    if self.vy > 10 then
+        print(self.vy)
+    end
 end
 
 function Player:manageCoyoteTime(dt)
@@ -69,8 +74,10 @@ function Player:move(dt, dir)
     if dir.x == 0 then
         self:applyFriction(dt)
     else
-        self.vx = self.vx + self.acceleration * dir.x * dt
-        self.vx = clamp(self.vx, -self.maxSpeed, self.maxSpeed)
+        if self.canMove then
+            self.vx = self.vx + self.acceleration * dir.x * dt
+            self.vx = clamp(self.vx, -self.maxSpeed, self.maxSpeed)
+        end
     end
 end
 
@@ -111,15 +118,17 @@ function Player:land(collision)
 end
 
 function Player:jump()
-    if (self.coyoteTimer > 0 and self.jumpBufferTimer > 0) then
-        self.vy = self.jumpAmount
-        self.grounded = false
-        self.coyoteTimer = 0 -- Prevents player from multi-jumping by spamming the jump button
-        self.jumpBufferTimer = 0
-    end
-    -- Jump less high when the jump button is pressed quickly
-    if love.keyboard.isReleased(actions.jump) then 
-        self.vy = self.vy * 0.5
+    if self.canMove then
+        if (self.coyoteTimer > 0 and self.jumpBufferTimer > 0) then
+            self.vy = self.jumpAmount
+            self.grounded = false
+            self.coyoteTimer = 0 -- Prevents player from multi-jumping by spamming the jump button
+            self.jumpBufferTimer = 0
+        end
+        -- Jump less high when the jump button is pressed quickly
+        if love.keyboard.isReleased(actions.jump) then 
+            self.vy = self.vy * 0.5
+        end
     end
 end
 
@@ -133,7 +142,28 @@ function Player:endContact(a, b, collision) -- This is called then two fixtures 
 end
 
 function Player:draw()
-   love.graphics.rectangle("fill", self.x - self.width / 2, self.y - self.height / 2, self.width, self.height)
+    -- Calculate velocity magnitude (speed)
+    local speed = math.sqrt(self.vx^2 + self.vy^2)
+    -- Define colors
+    local slowColor = {0, 255, 0}   -- Green
+    local medColor = {255, 255, 0} -- Yellow
+    local fastColor = {255, 0, 0}    -- Red
+    if speed < 500 then
+        currentColor = slowColor
+    elseif speed >= 700 and speed <= 1100 then
+        currentColor = medColor
+    elseif speed > 1100 then
+        currentColor = fastColor
+        playerReachedFastColor = true
+    end
+
+    if playerReachedFastColor then
+        currentColor = fastColor
+    end
+
+    love.graphics.setColor(currentColor)
+    love.graphics.rectangle("fill", self.x - self.width / 2, self.y - self.height / 2, self.width, self.height)
+    love.graphics.setColor(255, 255, 255, 255)
 end
 
 
